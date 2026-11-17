@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f1f4f2">
+  <title>Lembar Ujian — Generator LJK</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17333b;
+      --muted: #52666b;
+      --subtle: #718186;
+      --line: #d5dfdc;
+      --surface: #ffffff;
+      --canvas: #f1f4f2;
+      --teal: #176d68;
+      --teal-dark: #105651;
+      --teal-soft: #e7f3ef;
+      --amber: #8c5a13;
+      --amber-soft: #fff3dc;
+      --red: #a33d36;
+      --red-soft: #fdf0ed;
+      --green: #246447;
+      --green-soft: #e9f5ec;
+      --shadow: 0 16px 44px rgb(24 49 53 / 9%);
+      font-family: Inter, Aptos, "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--canvas); }
+    button, input, select { font: inherit; }
+    button { touch-action: manipulation; }
+    .app-shell { min-height: 100vh; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding: 20px clamp(18px, 5vw, 72px);
+      border-bottom: 1px solid #dfe6e3;
+      background: rgb(255 255 255 / 72%);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
+    .brand-mark { width: 35px; height: 35px; flex: 0 0 auto; }
+    .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.025em; }
+    .brand-note { margin-top: 2px; font-size: 11px; color: var(--muted); }
+    .offline-note { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .offline-dot { width: 8px; height: 8px; border-radius: 50%; background: #3f8c68; box-shadow: 0 0 0 3px #e3f1e9; }
+
+    main { width: min(1440px, 100%); margin: 0 auto; padding: 37px clamp(16px, 4vw, 58px) 56px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 27px; }
+    .intro-copy { max-width: 650px; }
+    .intro h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); line-height: 1.12; letter-spacing: -.045em; font-weight: 730; }
+    .intro p { max-width: 590px; margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+    .intro-mark { width: 176px; height: auto; flex: 0 0 auto; }
+
+    .mode-tabs { display: flex; gap: 4px; width: max-content; max-width: 100%; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: #e8eeeb; margin-bottom: 22px; }
+    .mode-tab { min-height: 42px; padding: 9px 16px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 650; cursor: pointer; }
+    .mode-tab:hover { color: var(--ink); }
+    .mode-tab[aria-selected="true"] { background: white; color: var(--ink); box-shadow: 0 1px 3px rgb(18 43 45 / 12%); }
+
+    .workspace { display: grid; grid-template-columns: minmax(325px, .82fr) minmax(470px, 1.18fr); align-items: start; gap: 22px; }
+    .panel { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); box-shadow: 0 4px 18px rgb(32 58 60 / 4%); }
+    .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 21px 22px 17px; border-bottom: 1px solid #e5ebe8; }
+    .panel-head h2 { margin: 0; font-size: 17px; font-weight: 720; letter-spacing: -.02em; }
+    .panel-head p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+    .saved-state { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-size: 11px; white-space: nowrap; }
+    .saved-state svg { width: 14px; height: 14px; }
+    .panel-body { padding: 20px 22px 22px; }
+    .field-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 15px 14px; }
+    .field { min-width: 0; }
+    .field-wide { grid-column: 1 / -1; }
+    .field label, .field-label { display: block; margin-bottom: 7px; color: #263e43; font-size: 12px; font-weight: 680; }
+    .required { color: var(--red); }
+    .control {
+      display: block;
+      width: 100%;
+      min-height: 43px;
+      padding: 9px 11px;
+      border: 1px solid #bfceca;
+      border-radius: 8px;
+      outline: none;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .control:hover { border-color: #8fa8a1; }
+    .control:focus-visible, .key-select:focus-visible, button:focus-visible, .file-button:focus-visible {
+      outline: 3px solid #9ed5c5;
+      outline-offset: 2px;
+      border-color: var(--teal);
+    }
+    .field-hint { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .date-readout { display: flex; align-items: center; min-height: 43px; padding: 8px 11px; border: 1px solid #dce6e2; border-radius: 8px; background: #f6f9f7; color: #33514f; font-size: 13px; }
+    .key-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 24px 0 11px; }
+    .key-heading h3 { margin: 0; font-size: 14px; font-weight: 720; }
+    .key-count { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .key-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 9px; max-height: 320px; overflow: auto; padding: 1px 3px 1px 1px; }
+    .key-cell { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 39px; padding: 4px 6px; border: 1px solid #e1e9e6; border-radius: 7px; background: #fbfcfb; }
+    .key-number { color: #46605e; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .key-select { width: 100%; min-height: 31px; padding: 4px 7px; border: 1px solid #cad7d3; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; }
+    .key-select.is-empty { color: #72817e; }
+    .key-empty { margin: 0; padding: 12px; border: 1px dashed #cbd7d3; border-radius: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .key-complete { margin: 12px 0 0; color: var(--green); font-size: 11px; line-height: 1.5; }
+    .key-incomplete { margin: 12px 0 0; padding: 10px 11px; border-radius: 7px; background: var(--amber-soft); color: #704708; font-size: 11px; line-height: 1.5; }
+    .primary-button, .secondary-button, .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 45px;
+      padding: 10px 15px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 680;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .primary-button { width: 100%; margin-top: 15px; background: var(--teal); color: white; }
+    .primary-button:hover { background: var(--teal-dark); }
+    .primary-button svg, .secondary-button svg, .file-button svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .secondary-button { border-color: #bccdc7; background: #fff; color: var(--ink); }
+    .secondary-button:hover, .file-button:hover { border-color: #89a8a0; background: #f5faf7; }
+    .button-hint { margin: 8px 0 0; color: var(--muted); text-align: center; font-size: 11px; line-height: 1.5; }
+    .error-text { min-height: 18px; margin: 8px 0 0; color: var(--red); font-size: 12px; }
+
+    .preview-panel { overflow: hidden; }
+    .preview-topline { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 17px 21px; border-bottom: 1px solid #e5ebe8; }
+    .preview-title { display: flex; align-items: center; gap: 10px; }
+    .preview-title svg { width: 18px; height: 18px; color: var(--teal); }
+    .preview-title h2 { margin: 0; font-size: 14px; font-weight: 710; }
+    .paper-tag { padding: 5px 8px; border: 1px solid #c8d8d2; border-radius: 20px; color: #405d58; background: #f7faf8; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .preview-stage { padding: clamp(12px, 2.1vw, 24px); background: #e9eeeb; }
+    .sheet-frame { max-width: 680px; margin: 0 auto; padding: 10px; border: 1px solid #d3dcd8; border-radius: 5px; background: #dce4e0; box-shadow: var(--shadow); }
+    .sheet-svg { display: block; width: 100%; height: auto; background: white; }
+    .preview-caption { display: flex; align-items: flex-start; gap: 8px; padding: 13px 19px 16px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .preview-caption svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; color: var(--teal); }
+
+    [hidden] { display: none !important; }
+    .scan-workspace { display: grid; grid-template-columns: minmax(305px, .72fr) minmax(0, 1.28fr); gap: 22px; align-items: start; }
+    .scan-panel .panel-body { padding-top: 18px; }
+    .scan-explainer { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .upload-actions { display: grid; gap: 9px; }
+    .file-button { width: 100%; border-color: #b9cbc5; background: #fff; color: var(--ink); }
+    .file-button.primary-choice { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .file-button.primary-choice:hover { background: var(--teal-dark); }
+    .file-input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .privacy-note { display: flex; gap: 8px; margin: 15px 0 0; padding: 10px 11px; border-radius: 8px; background: #eff6f2; color: #385b50; font-size: 11px; line-height: 1.5; }
+    .privacy-note svg { width: 15px; height: 15px; flex: 0 0 auto; }
+    .scan-tip { margin-top: 14px; padding-top: 13px; border-top: 1px solid #e4ebe8; }
+    .scan-tip h3 { margin: 0 0 6px; font-size: 12px; }
+    .scan-tip ol { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.75; }
+    .selected-files { display: grid; gap: 6px; margin: 13px 0 0; padding: 0; list-style: none; }
+    .selected-files li { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; padding: 7px 8px 7px 10px; border: 1px solid #e1e9e5; border-radius: 7px; background: #fbfcfb; font-size: 11px; }
+    .selected-files .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .remove-file { width: 30px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 6px; background: transparent; color: #6a7a77; font-size: 18px; cursor: pointer; }
+    .remove-file:hover { background: #fbe9e7; color: var(--red); }
+    .scan-status { min-height: 18px; margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .scan-status.error { color: var(--red); }
+    .scan-status.success { color: var(--green); }
+    .scan-submit { margin-top: 11px; }
+    .scan-submit:disabled { cursor: not-allowed; background: #a5b4af; }
+    .empty-results { display: grid; min-height: 330px; place-items: center; padding: 30px; text-align: center; }
+    .empty-results-inner { max-width: 330px; }
+    .empty-icon { display: grid; width: 54px; height: 54px; place-items: center; margin: 0 auto 15px; border: 1px solid #c8d8d2; border-radius: 15px; background: #eff6f2; color: var(--teal); }
+    .empty-icon svg { width: 25px; height: 25px; }
+    .empty-results h3 { margin: 0; font-size: 15px; }
+    .empty-results p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .results-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px 14px; border-bottom: 1px solid #e5ebe8; }
+    .results-head h2 { margin: 0; font-size: 16px; }
+    .results-head p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .download-csv { min-height: 37px; padding: 8px 11px; font-size: 11px; }
+    .results-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; padding: 14px 18px 6px; }
+    .summary-stat { min-width: 0; padding: 12px 13px; border: 1px solid #e2eae6; border-radius: 9px; background: #fbfcfb; }
+    .summary-stat span { display: block; color: var(--muted); font-size: 10px; }
+    .summary-stat strong { display: block; margin-top: 5px; color: var(--ink); font-size: 19px; font-variant-numeric: tabular-nums; }
+    .results-list { display: grid; gap: 10px; padding: 12px 18px 18px; }
+    .student-card { overflow: hidden; border: 1px solid #dce6e1; border-radius: 10px; background: #fff; }
+    .student-card-head { display: grid; grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(70px, .42fr)) auto; align-items: center; gap: 12px; padding: 12px 13px; }
+    .student-main { min-width: 0; }
+    .student-name { width: 100%; min-height: 36px; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 680; }
+    .student-name:hover, .student-name:focus { border-color: #c5d5cf; background: #fbfdfb; outline: none; }
+    .student-file { overflow: hidden; margin: 3px 8px 0; color: var(--subtle); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .student-stat span { display: block; color: var(--subtle); font-size: 9px; }
+    .student-stat strong { display: block; margin-top: 3px; color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .student-stat.is-score strong { color: var(--teal-dark); font-size: 17px; }
+    .detail-toggle { min-height: 36px; padding: 7px 9px; border: 1px solid #cad7d3; border-radius: 7px; background: white; color: var(--ink); font-size: 10px; font-weight: 650; cursor: pointer; }
+    .detail-toggle:hover { background: #f5faf7; }
+    .student-details { padding: 0 13px 13px; }
+    .student-details[hidden] { display: none; }
+    .details-table-wrap { overflow: auto; max-height: 350px; border: 1px solid #e2e9e6; border-radius: 7px; }
+    .details-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .details-table th, .details-table td { padding: 7px 9px; border-bottom: 1px solid #edf1ef; text-align: left; }
+    .details-table th { position: sticky; top: 0; background: #f4f8f6; color: #405754; font-size: 10px; }
+    .details-table tr:last-child td { border-bottom: 0; }
+    .answer-select { min-height: 30px; padding: 3px 6px; border: 1px solid #d0dcd7; border-radius: 5px; background: #fff; color: var(--ink); font-size: 11px; }
+    .answer-state { color: var(--muted); }
+    .answer-state.good { color: var(--green); font-weight: 650; }
+    .answer-state.bad { color: var(--red); }
+    .report-note { margin: 0 18px 17px; padding: 10px 11px; border-radius: 7px; background: #f2f6f4; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .scan-errors { margin: 0 18px 12px; padding: 10px 12px; border-radius: 7px; background: var(--red-soft); color: #8b2f2b; font-size: 11px; line-height: 1.6; }
+    .scan-errors ul { margin: 5px 0 0; padding-left: 19px; }
+    .footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 23px; color: #667976; font-size: 10px; line-height: 1.5; }
+    .footer span:last-child { text-align: right; }
+
+    #printRoot { display: none; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm; height: 297mm; min-width: 0; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      .app-shell { display: none !important; }
+      #printRoot { display: block !important; width: 210mm; height: 297mm; margin: 0; padding: 0; }
+      #printRoot svg { display: block; width: 210mm; height: 297mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
+    @media (max-width: 1030px) {
+      .workspace { grid-template-columns: minmax(300px, .82fr) minmax(380px, 1.18fr); gap: 15px; }
+      .panel-head, .panel-body { padding-left: 17px; padding-right: 17px; }
+      .student-card-head { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(65px, .38fr)) auto; }
+      .student-stat.is-answered { display: none; }
+    }
+    @media (max-width: 790px) {
+      main { padding-top: 28px; }
+      .intro { align-items: start; }
+      .intro-mark { width: 125px; }
+      .workspace, .scan-workspace { grid-template-columns: minmax(0, 1fr); }
+      .preview-panel { order: 2; }
+      .builder-panel { order: 1; }
+      .scan-results-panel { order: 2; }
+      .sheet-frame { max-width: 560px; }
+    }
+    @media (max-width: 520px) {
+      .topbar { padding: 14px 16px; }
+      .offline-note { font-size: 10px; }
+      main { padding: 24px 13px 38px; }
+      .intro { margin-bottom: 21px; }
+      .intro h1 { font-size: 28px; }
+      .intro p { max-width: 295px; font-size: 13px; }
+      .intro-mark { display: none; }
+      .mode-tabs { width: 100%; }
+      .mode-tab { flex: 1 1 50%; padding: 8px 9px; font-size: 12px; }
+      .panel-head { padding: 17px 15px 14px; }
+      .panel-body { padding: 16px 15px 18px; }
+      .field-grid { gap: 13px 10px; }
+      .field label, .field-label { font-size: 11px; }
+      .control { font-size: 16px; }
+      .date-readout { font-size: 11px; }
+      .key-grid { gap: 6px; }
+      .key-cell { grid-template-columns: 28px minmax(0, 1fr); gap: 4px; padding-left: 5px; padding-right: 5px; }
+      .preview-topline { padding: 14px 13px; }
+      .preview-stage { padding: 10px 7px; }
+      .sheet-frame { padding: 5px; }
+      .preview-caption { padding: 11px 13px 14px; font-size: 10px; }
+      .scan-workspace { gap: 14px; }
+      .results-head { align-items: flex-start; padding: 15px 13px 12px; }
+      .results-summary { gap: 6px; padding: 12px 11px 5px; }
+      .summary-stat { padding: 10px 8px; }
+      .summary-stat span { font-size: 9px; }
+      .summary-stat strong { font-size: 16px; }
+      .results-list { padding: 10px 11px 13px; }
+      .student-card-head { grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; padding: 10px 8px; }
+      .student-stat.is-answered, .student-stat.is-correct { display: none; }
+      .student-stat.is-score strong { font-size: 15px; }
+      .student-file { margin-left: 8px; font-size: 9px; }
+      .detail-toggle { padding: 6px 7px; font-size: 9px; }
+      .student-details { padding: 0 8px 9px; }
+      .download-csv { min-height: 34px; padding: 6px 8px; font-size: 10px; }
+      .report-note, .scan-errors { margin-right: 11px; margin-left: 11px; }
+      .footer { flex-direction: column; gap: 4px; }
+      .footer span:last-child { text-align: left; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Lembar Ujian, beranda">
+        <svg class="brand-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="30" height="30" rx="9" fill="#176D68"/>
+          <path d="M11 10.5h14v16H11z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M14.5 15h7M14.5 18.5h7M14.5 22h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="25" cy="25" r="4" fill="#E5B45D" stroke="#176D68" stroke-width="1.5"/>
+        </svg>
+        <span><span class="brand-name">Lembar Ujian</span><span class="brand-note" style="display:block">Generator lembar jawaban</span></span>
+      </a>
+      <div class="offline-note"><span class="offline-dot" aria-hidden="true"></span><span>Bekerja langsung di perangkat ini</span></div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="pageTitle">
+        <div class="intro-copy">
+          <h1 id="pageTitle">Lembar jawaban, siap diperiksa.</h1>
+          <p>Atur kunci sekali, cetak lembar A4 untuk siswa, lalu pindai kembali untuk melihat jawaban dan nilai.</p>
+        </div>
+        <svg class="intro-mark" viewBox="0 0 176 73" fill="none" aria-hidden="true">
+          <path d="M8 58.5h160" stroke="#B9CAC4" stroke-width="1.2"/>
+          <path d="M23 55V21.5a4 4 0 0 1 4-4h22l10 9v28.5H27a4 4 0 0 1-4-4Z" fill="#fff" stroke="#94ACA4" stroke-width="1.4"/>
+          <path d="M49 18v10h10" stroke="#94ACA4" stroke-width="1.4" stroke-linejoin="round"/>
+          <path d="M32 35h20M32 40h20M32 45h13" stroke="#ADC1BA" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="78" cy="47" r="12" fill="#E6F3ED" stroke="#176D68" stroke-width="1.5"/>
+          <circle cx="78" cy="47" r="5.5" fill="#176D68"/>
+          <circle cx="104" cy="47" r="12" fill="#fff" stroke="#A8B9B3" stroke-width="1.5"/>
+          <circle cx="130" cy="47" r="12" fill="#fff" stroke="#A8B9B3" stroke-width="1.5"/>
+          <path d="m120 19 4.1 4.1 8.4-9" stroke="#176D68" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M117 31h27" stroke="#D3DFDA" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </section>
+
+      <div class="mode-tabs" role="tablist" aria-label="Mode lembar ujian">
+        <button class="mode-tab" id="buildTab" type="button" role="tab" aria-selected="true" aria-controls="buildPanel">Buat lembar</button>
+        <button class="mode-tab" id="scanTab" type="button" role="tab" aria-selected="false" aria-controls="scanPanel">Periksa hasil pindai</button>
+      </div>
+
+      <section id="buildPanel" role="tabpanel" aria-labelledby="buildTab">
+        <div class="workspace">
+          <section class="panel builder-panel" aria-labelledby="setupTitle">
+            <div class="panel-head">
+              <div><h2 id="setupTitle">Atur lembar ujian</h2><p>Isi informasi ujian dan kunci jawaban.</p></div>
+              <span class="saved-state" aria-live="polite">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.3 11.5 13 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Tersimpan
+              </span>
+            </div>
+            <div class="panel-body">
+              <div class="field-grid">
+                <div class="field field-wide">
+                  <label for="subjectInput">Mata pelajaran <span class="required" aria-hidden="true">*</span></label>
+                  <input class="control" id="subjectInput" type="text" maxlength="55" autocomplete="off" placeholder="Contoh: Bahasa Indonesia">
+                </div>
+                <div class="field">
+                  <label for="dateInput">Tanggal ujian</label>
+                  <input class="control" id="dateInput" type="date">
+                </div>
+                <div class="field">
+                  <span class="field-label">Hari & tahun</span>
+                  <div class="date-readout" id="dateReadout" aria-live="polite">—</div>
+                </div>
+                <div class="field">
+                  <label for="countInput">Jumlah soal</label>
+                  <input class="control" id="countInput" type="number" min="1" max="120" step="1" inputmode="numeric">
+                  <p class="field-hint">Maksimal 120 nomor dalam satu halaman A4.</p>
+                </div>
+                <div class="field">
+                  <label for="choicesInput">Pilihan jawaban</label>
+                  <select class="control" id="choicesInput">
+                    <option value="4">4 pilihan (A–D)</option>
+                    <option value="5">5 pilihan (A–E)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="key-heading">
+                <h3>Kunci jawaban</h3>
+                <span class="key-count" id="keyCount">0 dari 0 terisi</span>
+              </div>
+              <div class="key-grid" id="keyGrid" aria-label="Pilihan kunci jawaban"></div>
+              <p class="key-incomplete" id="keyMessage">Isi kunci jawaban agar hasil pindai bisa dinilai otomatis.</p>
+
+              <p class="error-text" id="setupError" role="alert"></p>
+              <button class="primary-button" id="printButton" type="button">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 7V3.5h8V7M6 14h-2a1.5 1.5 0 0 1-1.5-1.5v-4A1.5 1.5 0 0 1 4 7h12a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 16 14h-2M6 11.5h8v5H6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="14.5" cy="9.5" r=".8" fill="currentColor"/></svg>
+                Cetak lembar A4
+              </button>
+              <p class="button-hint">Di dialog cetak, pilih kertas A4 dan skala 100%.</p>
+            </div>
+          </section>
+
+          <section class="panel preview-panel" aria-labelledby="previewHeading">
+            <div class="preview-topline">
+              <div class="preview-title">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2.8v3.5h3M7.5 9h5M7.5 12h5M7.5 15h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <h2 id="previewHeading">Pratinjau lembar siswa</h2>
+              </div>
+              <span class="paper-tag">A4 · Potret</span>
+            </div>
+            <div class="preview-stage">
+              <div class="sheet-frame" id="previewFrame">
+                <svg id="previewSvg" class="sheet-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" role="img" aria-label="Pratinjau lembar jawaban siswa ukuran A4"></svg>
+              </div>
+            </div>
+            <div class="preview-caption">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor"/><path d="M8 7.2v3.5M8 5.1h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <span>Empat kotak hitam di sudut halaman membantu aplikasi meluruskan foto saat pemindaian. Jangan terpotong saat difoto.</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="scanPanel" role="tabpanel" aria-labelledby="scanTab" hidden>
+        <div class="scan-workspace">
+          <section class="panel scan-panel" aria-labelledby="scanTitle">
+            <div class="panel-head">
+              <div><h2 id="scanTitle">Periksa lembar siswa</h2><p>Unggah satu atau beberapa foto lembar yang sudah diisi.</p></div>
+            </div>
+            <div class="panel-body">
+              <p class="scan-explainer">Aplikasi membaca bulatan yang dihitamkan, lalu membandingkannya dengan kunci yang tersimpan di perangkat ini.</p>
+              <div class="upload-actions">
+                <label class="file-button primary-choice" for="cameraInput" role="button" tabindex="0">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6.5h3l1.1-1.7h5.8L14 6.5h3v9H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                  Ambil foto lembar
+                </label>
+                <input class="file-input" id="cameraInput" type="file" accept="image/*" capture="environment" aria-label="Ambil foto lembar jawaban">
+                <label class="file-button" for="imageInput" role="button" tabindex="0">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 4.2h14v11.6H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="7" cy="8" r="1.4" stroke="currentColor" stroke-width="1.3"/><path d="m4 14 4.2-3.8 2.4 2 2.2-2 3.2 3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Pilih foto atau hasil pindai
+                </label>
+                <input class="file-input" id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" multiple aria-label="Pilih foto atau hasil pindai lembar jawaban">
+              </div>
+              <ul class="selected-files" id="selectedFiles" aria-label="File yang dipilih" hidden></ul>
+              <p class="scan-status" id="scanStatus" role="status" aria-live="polite"></p>
+              <button class="primary-button scan-submit" id="scanButton" type="button" disabled>
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m12.5 12.5 4 4M6 8.5h5M8.5 6v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Periksa jawaban
+              </button>
+              <p class="button-hint" id="scanButtonHint">Lengkapi kunci jawaban di tab “Buat lembar”.</p>
+              <div class="privacy-note">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.4" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 7V4.8a2.8 2.8 0 1 1 5.6 0V7" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="10.5" r=".8" fill="currentColor"/></svg>
+                <span>Foto diproses di browser dan tidak dikirim ke server. Kunci tersimpan di browser yang sama.</span>
+              </div>
+              <div class="scan-tip">
+                <h3>Agar hasil baca akurat</h3>
+                <ol>
+                  <li>Foto seluruh halaman, tegak, dan cukup terang.</li>
+                  <li>Pastikan empat kotak hitam di sudut terlihat.</li>
+                  <li>Siswa menghitamkan bulatan sampai penuh dengan pensil 2B.</li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel scan-results-panel" id="resultsPanel" aria-labelledby="resultsHeading">
+            <div class="empty-results" id="emptyResults">
+              <div class="empty-results-inner">
+                <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3.5h7l4 4v13H7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+                <h3>Hasil pindai akan tampil di sini</h3>
+                <p>Setelah foto diperiksa, lihat nilai tiap siswa dan buka rincian untuk meninjau jawaban yang terbaca.</p>
+              </div>
+            </div>
+            <div id="resultsContent" hidden></div>
+          </section>
+        </div>
+      </section>
+
+      <div class="footer"><span>Format cetak A4 · Pilihan A–D atau A–E · Maksimal 120 soal</span><span>Kunci dan hasil disimpan hanya di browser ini.</span></div>
+    </main>
+  </div>
+  <div id="printRoot" aria-hidden="true"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'lembar-ujian-generator-v1';
+      const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+      const MARKS = [
+        { x: 9.4 / 210, y: 9.4 / 297 },
+        { x: 200.6 / 210, y: 9.4 / 297 },
+        { x: 9.4 / 210, y: 287.6 / 297 },
+        { x: 200.6 / 210, y: 287.6 / 297 }
+      ];
+
+      function localToday() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+      }
+
+      function loadSaved() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          const choices = Number(parsed.choices) === 4 ? 4 : 5;
+          const count = Math.min(120, Math.max(1, Number(parsed.count) || 20));
+          const key = Array.isArray(parsed.key) ? parsed.key.slice(0, count) : [];
+          while (key.length < count) key.push('');
+          return {
+            subject: typeof parsed.subject === 'string' ? parsed.subject.slice(0, 55) : '',
+            date: /^\d{4}-\d{2}-\d{2}$/.test(parsed.date) ? parsed.date : localToday(),
+            count: count,
+            choices: choices,
+            key: key.map(function (answer) { return LETTERS.slice(0, choices).indexOf(answer) >= 0 ? answer : ''; })
+          };
+        } catch (error) {
+          return null;
+        }
+      }
+
+      const state = loadSaved() || { subject: '', date: localToday(), count: 20, choices: 5, key: Array(20).fill('') };
+      let selectedFiles = [];
+      let results = [];
+      let scanErrors = [];
+
+      const subjectInput = document.getElementById('subjectInput');
+      const dateInput = document.getElementById('dateInput');
+      const countInput = document.getElementById('countInput');
+      const choicesInput = document.getElementById('choicesInput');
+      const keyGrid = document.getElementById('keyGrid');
+      const previewSvg = document.getElementById('previewSvg');
+      const keyCount = document.getElementById('keyCount');
+      const keyMessage = document.getElementById('keyMessage');
+      const dateReadout = document.getElementById('dateReadout');
+      const setupError = document.getElementById('setupError');
+      const cameraInput = document.getElementById('cameraInput');
+      const imageInput = document.getElementById('imageInput');
+      const selectedFilesElement = document.getElementById('selectedFiles');
+      const scanButton = document.getElementById('scanButton');
+      const scanButtonHint = document.getElementById('scanButtonHint');
+      const scanStatus = document.getElementById('scanStatus');
+      const emptyResults = document.getElementById('emptyResults');
+      const resultsContent = document.getElementById('resultsContent');
+
+      function escapeXml(value) {
+        return String(value).replace(/[&<>"']/g, function (character) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[character];
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (character) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+        });
+      }
+
+      function formattedDate(value) {
+        if (!value) return 'Pilih tanggal ujian';
+        const date = new Date(value + 'T12:00:00');
+        if (Number.isNaN(date.getTime())) return 'Pilih tanggal ujian';
+        const weekday = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(date);
+        const dateText = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+        return weekday.charAt(0).toUpperCase() + weekday.slice(1) + ', ' + dateText;
+      }
+
+      function columnCount() {
+        return state.count <= 40 ? 1 : (state.count <= 80 ? 2 : 3);
+      }
+
+      function keyIsComplete() {
+        return state.key.length === state.count && state.key.every(function (answer) {
+          return LETTERS.slice(0, state.choices).indexOf(answer) >= 0;
+        });
+      }
+
+      function saveState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { /* storage may be disabled */ }
+        document.querySelector('.saved-state').setAttribute('title', 'Tersimpan di browser ini');
+      }
+
+      function fillControls() {
+        subjectInput.value = state.subject;
+        dateInput.value = state.date;
+        countInput.value = state.count;
+        choicesInput.value = String(state.choices);
+      }
+
+      function renderKeyGrid() {
+        const options = LETTERS.slice(0, state.choices);
+        keyGrid.innerHTML = state.key.map(function (answer, index) {
+          const number = String(index + 1).padStart(2, '0');
+          const selectOptions = ['<option value="">Pilih</option>'].concat(options.map(function (letter) {
+            return '<option value="' + letter + '"' + (answer === letter ? ' selected' : '') + '>' + letter + '</option>';
+          })).join('');
+          return '<div class="key-cell"><label class="key-number" for="key-' + index + '">No. ' + number + '</label>' +
+            '<select class="key-select' + (answer ? '' : ' is-empty') + '" id="key-' + index + '" data-index="' + index + '" aria-label="Kunci jawaban nomor ' + (index + 1) + '">' + selectOptions + '</select></div>';
+        }).join('');
+        const filled = state.key.filter(function (answer) { return LETTERS.slice(0, state.choices).indexOf(answer) >= 0; }).length;
+        keyCount.textContent = filled + ' dari ' + state.count + ' terisi';
+        const complete = filled === state.count;
+        keyMessage.className = complete ? 'key-complete' : 'key-incomplete';
+        keyMessage.textContent = complete
+          ? 'Kunci lengkap. Anda bisa pindai lembar menggunakan browser ini.'
+          : 'Isi semua nomor agar jawaban siswa bisa dinilai otomatis. ' + (state.count - filled) + ' nomor belum diisi.';
+        scanButton.disabled = !complete || selectedFiles.length === 0;
+        scanButtonHint.textContent = complete
+          ? (selectedFiles.length ? selectedFiles.length + ' file siap diperiksa.' : 'Pilih satu atau beberapa foto lembar siswa.')
+          : 'Lengkapi kunci jawaban di tab “Buat lembar”.';
+      }
+
+      function renderSvg() {
+        const parts = [];
+        parts.push('<title>Lembar jawaban siswa ukuran A4</title>');
+        parts.push('<desc>Lembar pilihan ganda untuk ' + escapeXml(state.count) + ' soal, dengan tanda pindai di empat sudut.</desc>');
+        parts.push('<rect width="210" height="297" fill="#fff"/>');
+
+        [[7, 7], [198.2, 7], [7, 285.2], [198.2, 285.2]].forEach(function (point) {
+          parts.push('<rect x="' + point[0] + '" y="' + point[1] + '" width="4.8" height="4.8" fill="#111"/>');
+        });
+
+        parts.push('<text x="14" y="17.2" fill="#176D68" font-family="Arial,sans-serif" font-size="3.3" font-weight="700" letter-spacing=".5">LEMBAR JAWABAN SISWA</text>');
+        parts.push('<text x="14" y="21.5" fill="#60736E" font-family="Arial,sans-serif" font-size="2.7">MATA PELAJARAN</text>');
+        const subject = state.subject.trim() || 'Mata pelajaran';
+        const subjectFont = Math.max(4.5, Math.min(6.6, 93 / Math.max(14, subject.length * .53)));
+        parts.push('<text x="14" y="29.5" fill="#17333B" font-family="Arial,sans-serif" font-size="' + subjectFont.toFixed(2) + '" font-weight="700">' + escapeXml(subject) + '</text>');
+        parts.push('<text x="116" y="21.5" fill="#60736E" font-family="Arial,sans-serif" font-size="2.7">HARI, TANGGAL, TAHUN</text>');
+        const dateText = formattedDate(state.date);
+        const dateFont = Math.max(3.4, Math.min(4.2, 76 / Math.max(24, dateText.length * .55)));
+        parts.push('<text x="116" y="29.2" fill="#17333B" font-family="Arial,sans-serif" font-size="' + dateFont.toFixed(2) + '" font-weight="600">' + escapeXml(dateText) + '</text>');
+        parts.push('<path d="M14 34.2H196" stroke="#B9CAC4" stroke-width=".35"/>');
+
+        parts.push('<text x="14" y="40.3" fill="#52666B" font-family="Arial,sans-serif" font-size="2.8" font-weight="600">NAMA SISWA</text>');
+        parts.push('<path d="M14 47H106" stroke="#536762" stroke-width=".28"/>');
+        parts.push('<text x="114" y="40.3" fill="#52666B" font-family="Arial,sans-serif" font-size="2.8" font-weight="600">KELAS</text>');
+        parts.push('<path d="M114 47H151" stroke="#536762" stroke-width=".28"/>');
+        parts.push('<text x="159" y="40.3" fill="#52666B" font-family="Arial,sans-serif" font-size="2.8" font-weight="600">NO. ABSEN</text>');
+        parts.push('<path d="M159 47H196" stroke="#536762" stroke-width=".28"/>');
+        parts.push('<path d="M14 53H196" stroke="#D9E2DE" stroke-width=".3"/>');
+        parts.push('<text x="14" y="59" fill="#344F4B" font-family="Arial,sans-serif" font-size="3.1" font-weight="600">Petunjuk:</text>');
+        parts.push('<text x="29" y="59" fill="#52666B" font-family="Arial,sans-serif" font-size="3.1">Hitamkan satu bulatan jawaban sampai penuh dengan pensil 2B.</text>');
+        parts.push('<text x="14" y="68.5" fill="#17333B" font-family="Arial,sans-serif" font-size="3.3" font-weight="700">JAWABAN</text>');
+        parts.push('<text x="35" y="68.5" fill="#718186" font-family="Arial,sans-serif" font-size="2.65">' + state.count + ' nomor</text>');
+        parts.push('<path d="M14 70.2H196" stroke="#AEBFB9" stroke-width=".35"/>');
+
+        const columns = columnCount();
+        const rowsPerColumn = Math.ceil(state.count / columns);
+        const columnWidth = 182 / columns;
+        const groupWidth = 13.3 + (state.choices - 1) * 6.6;
+        const headerY = 73.6;
+        const rowStart = 75.1;
+        const rowHeight = 4.75;
+        for (let column = 0; column < columns; column++) {
+          const columnLeft = 14 + column * columnWidth;
+          const leftOffset = (columnWidth - groupWidth) / 2;
+          const numberX = columnLeft + leftOffset;
+          const firstBubbleX = numberX + 11.5;
+          parts.push('<text x="' + numberX.toFixed(3) + '" y="' + headerY + '" fill="#718186" font-family="Arial,sans-serif" font-size="2.5" font-weight="700">NO.</text>');
+          for (let choice = 0; choice < state.choices; choice++) {
+            const centerX = firstBubbleX + choice * 6.6;
+            parts.push('<text x="' + centerX.toFixed(3) + '" y="' + headerY + '" text-anchor="middle" fill="#405754" font-family="Arial,sans-serif" font-size="2.8" font-weight="700">' + LETTERS[choice] + '</text>');
+          }
+          for (let row = 0; row < rowsPerColumn; row++) {
+            const question = column * rowsPerColumn + row;
+            if (question >= state.count) break;
+            const top = rowStart + row * rowHeight;
+            const centerY = top + rowHeight / 2;
+            parts.push('<text x="' + numberX.toFixed(3) + '" y="' + (centerY + 1.05).toFixed(3) + '" fill="#263E43" font-family="Arial,sans-serif" font-size="3.0" font-weight="600">' + String(question + 1).padStart(2, '0') + '</text>');
+            for (let choice = 0; choice < state.choices; choice++) {
+              const centerX = firstBubbleX + choice * 6.6;
+              parts.push('<circle cx="' + centerX.toFixed(3) + '" cy="' + centerY.toFixed(3) + '" r="1.62" fill="#fff" stroke="#263E43" stroke-width=".32"/>');
+            }
+          }
+        }
+        parts.push('<path d="M14 273.4H196" stroke="#B9CAC4" stroke-width=".35"/>');
+        parts.push('<text x="14" y="280.3" fill="#52666B" font-family="Arial,sans-serif" font-size="2.75">Periksa kembali nama, kelas, dan jawaban sebelum lembar dikumpulkan.</text>');
+        parts.push('<text x="196" y="280.3" text-anchor="end" fill="#718186" font-family="Arial,sans-serif" font-size="2.5">' + state.count + ' soal</text>');
+        previewSvg.innerHTML = parts.join('');
+        previewSvg.setAttribute('aria-label', 'Pratinjau lembar jawaban A4 untuk ' + (state.subject.trim() || 'mata pelajaran') + ', ' + state.count + ' soal');
+      }
+
+      function updateView() {
+        dateReadout.textContent = formattedDate(state.date);
+        renderKeyGrid();
+        renderSvg();
+        saveState();
+      }
+
+      function changeCount(value) {
+        const parsed = Math.min(120, Math.max(1, Number.parseInt(value, 10) || 1));
+        state.count = parsed;
+        state.key = state.key.slice(0, parsed);
+        while (state.key.length < parsed) state.key.push('');
+        countInput.value = parsed;
+        updateView();
+      }
+
+      subjectInput.addEventListener('input', function () {
+        state.subject = subjectInput.value.slice(0, 55);
+        setupError.textContent = '';
+        renderSvg();
+        saveState();
+      });
+      dateInput.addEventListener('change', function () {
+        state.date = dateInput.value || localToday();
+        if (!dateInput.value) dateInput.value = state.date;
+        updateView();
+      });
+      countInput.addEventListener('change', function () { changeCount(countInput.value); });
+      choicesInput.addEventListener('change', function () {
+        state.choices = Number(choicesInput.value) === 4 ? 4 : 5;
+        state.key = state.key.map(function (answer) { return LETTERS.slice(0, state.choices).indexOf(answer) >= 0 ? answer : ''; });
+        updateView();
+      });
+      keyGrid.addEventListener('change', function (event) {
+        const select = event.target.closest('.key-select');
+        if (!select) return;
+        state.key[Number(select.dataset.index)] = select.value;
+        select.classList.toggle('is-empty', !select.value);
+        renderKeyGrid();
+        saveState();
+      });
+
+      function setMode(mode) {
+        const buildActive = mode === 'build';
+        document.getElementById('buildTab').setAttribute('aria-selected', String(buildActive));
+        document.getElementById('scanTab').setAttribute('aria-selected', String(!buildActive));
+        document.getElementById('buildPanel').hidden = !buildActive;
+        document.getElementById('scanPanel').hidden = buildActive;
+      }
+      document.getElementById('buildTab').addEventListener('click', function () { setMode('build'); });
+      document.getElementById('scanTab').addEventListener('click', function () { setMode('scan'); });
+
+      document.getElementById('printButton').addEventListener('click', function () {
+        if (!state.subject.trim()) {
+          setupError.textContent = 'Isi mata pelajaran terlebih dahulu.';
+          subjectInput.focus();
+          return;
+        }
+        setupError.textContent = '';
+        const printRoot = document.getElementById('printRoot');
+        printRoot.innerHTML = '';
+        const copy = previewSvg.cloneNode(true);
+        copy.removeAttribute('id');
+        printRoot.appendChild(copy);
+        window.print();
+      });
+
+      function addFiles(fileList) {
+        const incoming = Array.from(fileList || []).filter(function (file) {
+          return file.type.indexOf('image/') === 0;
+        });
+        const rejected = Array.from(fileList || []).filter(function (file) {
+          return file.type.indexOf('image/') !== 0;
+        });
+        selectedFiles = selectedFiles.concat(incoming);
+        if (rejected.length) {
+          scanStatus.className = 'scan-status error';
+          scanStatus.textContent = 'Pilih file gambar JPG, PNG, WEBP, atau BMP. PDF perlu diubah menjadi gambar terlebih dahulu.';
+        } else {
+          scanStatus.className = 'scan-status';
+          scanStatus.textContent = incoming.length ? incoming.length + ' foto ditambahkan.' : '';
+        }
+        cameraInput.value = '';
+        imageInput.value = '';
+        renderSelectedFiles();
+        renderKeyGrid();
+      }
+
+      function renderSelectedFiles() {
+        selectedFilesElement.hidden = selectedFiles.length === 0;
+        selectedFilesElement.innerHTML = selectedFiles.map(function (file, index) {
+          return '<li><span class="file-name" title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</span>' +
+            '<button class="remove-file" type="button" data-remove="' + index + '" aria-label="Hapus ' + escapeHtml(file.name) + '">×</button></li>';
+        }).join('');
+        scanButton.disabled = !keyIsComplete() || selectedFiles.length === 0;
+        scanButtonHint.textContent = !keyIsComplete()
+          ? 'Lengkapi kunci jawaban di tab “Buat lembar”.'
+          : (selectedFiles.length ? selectedFiles.length + ' file siap diperiksa.' : 'Pilih satu atau beberapa foto lembar siswa.');
+      }
+      cameraInput.addEventListener('change', function () { addFiles(cameraInput.files); });
+      imageInput.addEventListener('change', function () { addFiles(imageInput.files); });
+      selectedFilesElement.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove]');
+        if (!button) return;
+        selectedFiles.splice(Number(button.dataset.remove), 1);
+        renderSelectedFiles();
+      });
+      document.querySelectorAll('.file-input').forEach(function (input) {
+        input.addEventListener('focus', function () { input.previousElementSibling.classList.add('file-focused'); });
+        input.addEventListener('blur', function () { input.previousElementSibling.classList.remove('file-focused'); });
+      });
+      document.querySelectorAll('.file-button[for]').forEach(function (label) {
+        label.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            document.getElementById(label.htmlFor).click();
+          }
+        });
+      });
+
+      function imageToCanvas(file) {
+        return new Promise(function (resolve, reject) {
+          if (typeof createImageBitmap === 'function') {
+            createImageBitmap(file).then(function (bitmap) {
+              const ratio = Math.min(1, 1500 / Math.max(bitmap.width, bitmap.height));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.max(1, Math.round(bitmap.width * ratio));
+              canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
+              const context = canvas.getContext('2d', { willReadFrequently: true });
+              context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+              if (typeof bitmap.close === 'function') bitmap.close();
+              resolve(canvas);
+            }).catch(reject);
+            return;
+          }
+          const image = new Image();
+          const url = URL.createObjectURL(file);
+          image.onload = function () {
+            const ratio = Math.min(1, 1500 / Math.max(image.naturalWidth, image.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+            canvas.getContext('2d', { willReadFrequently: true }).drawImage(image, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas);
+          };
+          image.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Gambar tidak bisa dibuka.')); };
+          image.src = url;
+        });
+      }
+
+      function detectFiducials(canvas) {
+        const width = canvas.width;
+        const height = canvas.height;
+        if (width < 200 || height < 280 || width / height > .9) {
+          throw new Error('Foto harus menampilkan halaman A4 dalam posisi tegak.');
+        }
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        const pixels = context.getImageData(0, 0, width, height).data;
+        const length = width * height;
+        const gray = new Uint8Array(length);
+        for (let p = 0, i = 0; p < length; p++, i += 4) {
+          gray[p] = Math.round(.299 * pixels[i] + .587 * pixels[i + 1] + .114 * pixels[i + 2]);
+        }
+        const seen = new Uint8Array(length);
+        const stack = new Int32Array(length);
+        let groups = [[], [], [], []];
+        const minSide = Math.max(5, Math.round(Math.min(width, height) * .005));
+        const maxSide = Math.min(Math.round(Math.min(width, height) * .075), 110);
+        for (let seed = 0; seed < length; seed++) {
+          if (seen[seed] || gray[seed] >= 100) continue;
+          let top = 0;
+          stack[top++] = seed;
+          seen[seed] = 1;
+          let minX = width, minY = height, maxX = 0, maxY = 0, area = 0, sumX = 0, sumY = 0;
+          while (top) {
+            const index = stack[--top];
+            const x = index % width;
+            const y = (index / width) | 0;
+            area++;
+            sumX += x;
+            sumY += y;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            const y0 = Math.max(0, y - 1), y1 = Math.min(height - 1, y + 1);
+            const x0 = Math.max(0, x - 1), x1 = Math.min(width - 1, x + 1);
+            for (let ny = y0; ny <= y1; ny++) {
+              const row = ny * width;
+              for (let nx = x0; nx <= x1; nx++) {
+                const next = row + nx;
+                if (!seen[next] && gray[next] < 100) { seen[next] = 1; stack[top++] = next; }
+              }
+            }
+          }
+          const boxWidth = maxX - minX + 1;
+          const boxHeight = maxY - minY + 1;
+          if (boxWidth < minSide || boxHeight < minSide || boxWidth > maxSide || boxHeight > maxSide) continue;
+          const ratio = boxWidth / boxHeight;
+          const density = area / (boxWidth * boxHeight);
+          if (ratio < .76 || ratio > 1.32 || density < .60) continue;
+          const cx = sumX / area, cy = sumY / area;
+          const xPart = cx / width, yPart = cy / height;
+          let corner = -1;
+          if (xPart < .34 && yPart < .28) corner = 0;
+          else if (xPart > .66 && yPart < .28) corner = 1;
+          else if (xPart < .34 && yPart > .72) corner = 2;
+          else if (xPart > .66 && yPart > .72) corner = 3;
+          if (corner >= 0) groups[corner].push({ x: cx, y: cy, w: boxWidth, h: boxHeight, density: density, area: area });
+        }
+
+        if (groups.some(function (group) { return group.length === 0; })) {
+          throw new Error('Empat kotak hitam sudut tidak terbaca. Foto ulang seluruh halaman dan pastikan semua sudut terlihat jelas.');
+        }
+        groups = groups.map(function (group) {
+          return group.sort(function (a, b) { return b.area - a.area; }).slice(0, 8);
+        });
+        let best = null;
+        let bestScore = Infinity;
+        for (const tl of groups[0]) for (const tr of groups[1]) for (const bl of groups[2]) for (const br of groups[3]) {
+          const dxTop = tr.x - tl.x, dxBottom = br.x - bl.x;
+          const dyLeft = bl.y - tl.y, dyRight = br.y - tr.y;
+          if (dxTop <= 0 || dxBottom <= 0 || dyLeft <= 0 || dyRight <= 0) continue;
+          const dx = (dxTop + dxBottom) / 2;
+          const dy = (dyLeft + dyRight) / 2;
+          const widthRatio = ((tl.w + tr.w + bl.w + br.w) / 4) / dx;
+          const heightRatio = ((tl.h + tr.h + bl.h + br.h) / 4) / dy;
+          const aspectRatio = dx / dy;
+          const widths = [tl.w, tr.w, bl.w, br.w];
+          const heights = [tl.h, tr.h, bl.h, br.h];
+          const meanW = widths.reduce(function (sum, v) { return sum + v; }, 0) / 4;
+          const meanH = heights.reduce(function (sum, v) { return sum + v; }, 0) / 4;
+          const sizeVariation = widths.reduce(function (sum, v) { return sum + Math.abs(Math.log(v / meanW)); }, 0) + heights.reduce(function (sum, v) { return sum + Math.abs(Math.log(v / meanH)); }, 0);
+          const densityPenalty = [tl, tr, bl, br].reduce(function (sum, mark) { return sum + (1 - mark.density); }, 0);
+          const score = Math.abs(Math.log(widthRatio / .0251)) + Math.abs(Math.log(heightRatio / .01725)) +
+            .8 * Math.abs(Math.log(aspectRatio / .687)) + .26 * sizeVariation + .16 * densityPenalty;
+          if (score < bestScore) { bestScore = score; best = [tl, tr, bl, br]; }
+        }
+        if (!best || bestScore > 2.25) {
+          throw new Error('Tanda sudut tidak cukup jelas untuk meluruskan foto. Coba pindai atau foto ulang dengan halaman lebih tegak.');
+        }
+        return best.map(function (mark) { return { x: mark.x, y: mark.y }; });
+      }
+
+      function solveLinear(matrix, values) {
+        const size = values.length;
+        for (let column = 0; column < size; column++) {
+          let pivot = column;
+          for (let row = column + 1; row < size; row++) {
+            if (Math.abs(matrix[row][column]) > Math.abs(matrix[pivot][column])) pivot = row;
+          }
+          if (Math.abs(matrix[pivot][column]) < 1e-10) throw new Error('Foto terlalu miring untuk dikoreksi.');
+          const tempRow = matrix[column]; matrix[column] = matrix[pivot]; matrix[pivot] = tempRow;
+          const tempValue = values[column]; values[column] = values[pivot]; values[pivot] = tempValue;
+          const divisor = matrix[column][column];
+          for (let c = column; c < size; c++) matrix[column][c] /= divisor;
+          values[column] /= divisor;
+          for (let row = 0; row < size; row++) {
+            if (row === column) continue;
+            const factor = matrix[row][column];
+            for (let c = column; c < size; c++) matrix[row][c] -= factor * matrix[column][c];
+            values[row] -= factor * values[column];
+          }
+        }
+        return values;
+      }
+
+      function makeHomography(sourceMarks) {
+        const rows = [];
+        const values = [];
+        for (let i = 0; i < MARKS.length; i++) {
+          const point = MARKS[i];
+          const source = sourceMarks[i];
+          const x = point.x, y = point.y, sx = source.x, sy = source.y;
+          rows.push([x, y, 1, 0, 0, 0, -x * sx, -y * sx]); values.push(sx);
+          rows.push([0, 0, 0, x, y, 1, -x * sy, -y * sy]); values.push(sy);
+        }
+        return solveLinear(rows, values);
+      }
+
+      function projectPoint(h, u, v) {
+        const denominator = h[6] * u + h[7] * v + 1;
+        return {
+          x: (h[0] * u + h[1] * v + h[2]) / denominator,
+          y: (h[3] * u + h[4] * v + h[5]) / denominator
+        };
+      }
+
+      function bubbleContrast(gray, width, height, h, xMm, yMm) {
+        let insideSum = 0, insideDark = 0, insideCount = 0;
+        let outsideSum = 0, outsideCount = 0;
+        for (let dy = -1.0; dy <= 1.001; dy += .2) {
+          for (let dx = -1.0; dx <= 1.001; dx += .2) {
+            if (dx * dx + dy * dy > 1.0) continue;
+            const point = projectPoint(h, (xMm + dx) / 210, (yMm + dy) / 297);
+            const x = Math.round(point.x), y = Math.round(point.y);
+            if (x < 0 || y < 0 || x >= width || y >= height) continue;
+            const value = gray[y * width + x];
+            insideSum += value;
+            if (value < 145) insideDark++;
+            insideCount++;
+          }
+        }
+        for (let dy = -2.8; dy <= 2.801; dy += .3) {
+          for (let dx = -2.8; dx <= 2.801; dx += .3) {
+            const radiusSquared = dx * dx + dy * dy;
+            if (radiusSquared < 4.4 || radiusSquared > 7.84) continue;
+            const point = projectPoint(h, (xMm + dx) / 210, (yMm + dy) / 297);
+            const x = Math.round(point.x), y = Math.round(point.y);
+            if (x < 0 || y < 0 || x >= width || y >= height) continue;
+            outsideSum += gray[y * width + x];
+            outsideCount++;
+          }
+        }
+        if (!insideCount || !outsideCount) return 0;
+        const insideMean = insideSum / insideCount;
+        const outsideMean = outsideSum / outsideCount;
+        const darkFraction = insideDark / insideCount;
+        const contrast = outsideMean - insideMean;
+        return contrast > 34 && darkFraction > .20 ? contrast * darkFraction : 0;
+      }
+
+      async function readAnswers(file) {
+        const canvas = await imageToCanvas(file);
+        const marks = detectFiducials(canvas);
+        const h = makeHomography(marks);
+        const imageData = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height).data;
+        const gray = new Uint8Array(canvas.width * canvas.height);
+        for (let p = 0, i = 0; p < gray.length; p++, i += 4) gray[p] = Math.round(.299 * imageData[i] + .587 * imageData[i + 1] + .114 * imageData[i + 2]);
+        const columns = columnCount();
+        const rowsPerColumn = Math.ceil(state.count / columns);
+        const columnWidth = 182 / columns;
+        const groupWidth = 13.3 + (state.choices - 1) * 6.6;
+        const answers = [];
+        const marksByQuestion = [];
+        for (let question = 0; question < state.count; question++) {
+          const column = Math.floor(question / rowsPerColumn);
+          const row = question % rowsPerColumn;
+          const left = 14 + column * columnWidth;
+          const numberX = left + (columnWidth - groupWidth) / 2;
+          const centerY = 75.1 + row * 4.75 + 4.75 / 2;
+          const scores = [];
+          for (let choice = 0; choice < state.choices; choice++) {
+            const centerX = numberX + 11.5 + choice * 6.6;
+            scores.push(bubbleContrast(gray, canvas.width, canvas.height, h, centerX, centerY));
+          }
+          const maxScore = Math.max.apply(null, scores);
+          const selected = scores.map(function (score, index) { return score > 12 && score >= maxScore * .48 ? LETTERS[index] : null; }).filter(Boolean);
+          marksByQuestion.push(selected);
+          answers.push(selected.length === 1 ? selected[0] : '');
+        }
+        return { answers: answers, marks: marksByQuestion };
+      }
+
+      function resultTotals(result) {
+        let correct = 0, answered = 0, blank = 0, multiple = 0;
+        result.answers.forEach(function (answer, index) {
+          const rawMarks = result.marks[index] || [];
+          if (answer) {
+            answered++;
+            if (answer === result.key[index]) correct++;
+          } else if (rawMarks.length > 1 && !result.manual[index]) {
+            multiple++;
+          } else {
+            blank++;
+          }
+        });
+        result.correct = correct;
+        result.answered = answered;
+        result.blank = blank;
+        result.multiple = multiple;
+        result.score = result.key.length ? Math.round(correct / result.key.length * 100) : 0;
+      }
+
+      function statusFor(result, index) {
+        const answer = result.answers[index];
+        if (!answer) return (result.marks[index] || []).length > 1 ? 'Tandai lebih dari satu' : 'Kosong';
+        return answer === result.key[index] ? 'Benar' : 'Perlu diperiksa';
+      }
+
+      function renderResults() {
+        emptyResults.hidden = results.length > 0;
+        resultsContent.hidden = results.length === 0;
+        if (!results.length) { resultsContent.innerHTML = ''; return; }
+        const average = Math.round(results.reduce(function (sum, result) { return sum + result.score; }, 0) / results.length);
+        const cards = results.map(function (result, resultIndex) {
+          resultTotals(result);
+          const rows = result.answers.map(function (answer, questionIndex) {
+            const options = ['<option value="">— Kosong —</option>'].concat(LETTERS.slice(0, state.choices).map(function (letter) {
+              return '<option value="' + letter + '"' + (answer === letter ? ' selected' : '') + '>' + letter + '</option>';
+            })).join('');
+            const status = statusFor(result, questionIndex);
+            const statusClass = status === 'Benar' ? 'good' : ((status === 'Perlu diperiksa' || status === 'Tandai lebih dari satu') ? 'bad' : '');
+            const detected = (result.marks[questionIndex] || []).join(', ') || '—';
+            return '<tr><td>' + (questionIndex + 1) + '</td><td>' + result.key[questionIndex] + '</td><td>' + escapeHtml(detected) + '</td>' +
+              '<td><select class="answer-select" data-result="' + resultIndex + '" data-question="' + questionIndex + '" aria-label="Jawaban nomor ' + (questionIndex + 1) + ', ' + escapeHtml(result.studentName) + '">' + options + '</select></td>' +
+              '<td class="answer-state ' + statusClass + '" data-state="' + questionIndex + '">' + status + '</td></tr>';
+          }).join('');
+          const fileName = escapeHtml(result.fileName);
+          const safeName = escapeHtml(result.studentName);
+          return '<article class="student-card" data-result-card="' + resultIndex + '">' +
+            '<div class="student-card-head">' +
+              '<div class="student-main"><input class="student-name" type="text" maxlength="70" value="' + safeName + '" data-name="' + resultIndex + '" aria-label="Nama siswa dari file ' + fileName + '"><div class="student-file" title="' + fileName + '">' + fileName + '</div></div>' +
+              '<div class="student-stat is-score"><span>Nilai</span><strong data-score>' + result.score + '</strong></div>' +
+              '<div class="student-stat is-correct"><span>Benar</span><strong data-correct>' + result.correct + ' / ' + result.key.length + '</strong></div>' +
+              '<div class="student-stat is-answered"><span>Terjawab</span><strong data-answered>' + result.answered + '</strong></div>' +
+              '<button class="detail-toggle" type="button" aria-expanded="false" data-detail="' + resultIndex + '">Lihat rincian</button>' +
+            '</div>' +
+            '<div class="student-details" data-details="' + resultIndex + '" hidden><div class="details-table-wrap"><table class="details-table"><thead><tr><th>No.</th><th>Kunci</th><th>Terbaca</th><th>Jawaban</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+          '</article>';
+        }).join('');
+        const errorBlock = scanErrors.length ? '<div class="scan-errors"><strong>' + scanErrors.length + ' file tidak dapat dibaca.</strong><ul>' + scanErrors.map(function (message) { return '<li>' + escapeHtml(message) + '</li>'; }).join('') + '</ul></div>' : '';
+        resultsContent.innerHTML = '<div class="results-head"><div><h2 id="resultsHeading">Hasil pemeriksaan</h2><p>' + results.length + ' lembar berhasil diperiksa untuk ' + escapeHtml(state.subject || 'ujian') + '.</p></div>' +
+            '<button class="secondary-button download-csv" id="downloadCsv" type="button"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v9m0 0 3.3-3.3M10 12 6.7 8.7M4 14v2.5h12V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Unduh CSV</button></div>' +
+          errorBlock +
+          '<div class="results-summary"><div class="summary-stat"><span>Lembar terbaca</span><strong>' + results.length + '</strong></div><div class="summary-stat"><span>Rata-rata nilai</span><strong>' + average + '</strong></div><div class="summary-stat"><span>Perlu tinjau</span><strong>' + results.reduce(function (sum, result) { return sum + result.multiple; }, 0) + '</strong></div></div>' +
+          '<div class="results-list">' + cards + '</div><p class="report-note">Nama awal diambil dari nama file. Ubah nama siswa jika diperlukan. Jawaban dapat dikoreksi di bagian rincian; perubahan ikut masuk ke nilai dan file CSV.</p>';
+        const csvButton = document.getElementById('downloadCsv');
+        csvButton.addEventListener('click', downloadCsv);
+      }
+
+      function updateResultCard(index) {
+        const result = results[index];
+        resultTotals(result);
+        const card = resultsContent.querySelector('[data-result-card="' + index + '"]');
+        if (!card) return;
+        card.querySelector('[data-score]').textContent = String(result.score);
+        card.querySelector('[data-correct]').textContent = result.correct + ' / ' + result.key.length;
+        card.querySelector('[data-answered]').textContent = String(result.answered);
+        const row = card.querySelector('[data-state="' + eventQuestionIndex + '"]');
+        if (row) {
+          const status = statusFor(result, eventQuestionIndex);
+          row.textContent = status;
+          row.className = 'answer-state ' + (status === 'Benar' ? 'good' : ((status === 'Perlu diperiksa' || status === 'Tandai lebih dari satu') ? 'bad' : ''));
+        }
+        const average = Math.round(results.reduce(function (sum, item) { return sum + item.score; }, 0) / results.length);
+        const stats = resultsContent.querySelectorAll('.summary-stat strong');
+        if (stats[1]) stats[1].textContent = String(average);
+        if (stats[2]) stats[2].textContent = String(results.reduce(function (sum, item) { return sum + item.multiple; }, 0));
+      }
+      let eventQuestionIndex = 0;
+
+      resultsContent.addEventListener('click', function (event) {
+        const toggle = event.target.closest('[data-detail]');
+        if (!toggle) return;
+        const index = Number(toggle.dataset.detail);
+        const detail = resultsContent.querySelector('[data-details="' + index + '"]');
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        detail.hidden = expanded;
+        toggle.textContent = expanded ? 'Lihat rincian' : 'Tutup rincian';
+      });
+      resultsContent.addEventListener('input', function (event) {
+        const input = event.target.closest('[data-name]');
+        if (!input) return;
+        results[Number(input.dataset.name)].studentName = input.value;
+      });
+      resultsContent.addEventListener('change', function (event) {
+        const select = event.target.closest('.answer-select');
+        if (!select) return;
+        const resultIndex = Number(select.dataset.result);
+        const questionIndex = Number(select.dataset.question);
+        const result = results[resultIndex];
+        result.answers[questionIndex] = select.value;
+        result.manual[questionIndex] = true;
+        eventQuestionIndex = questionIndex;
+        updateResultCard(resultIndex);
+      });
+
+      function csvCell(value) { return '"' + String(value).replace(/"/g, '""') + '"'; }
+      function downloadCsv() {
+        const header = ['Nama siswa', 'Mata pelajaran', 'Tanggal ujian', 'Nilai', 'Benar', 'Terjawab', 'Kosong', 'Pilihan ganda', 'Jawaban'];
+        const lines = [header.map(csvCell).join(';')];
+        results.forEach(function (result) {
+          resultTotals(result);
+          const row = [result.studentName, state.subject, formattedDate(state.date), result.score, result.correct, result.answered, result.blank, result.multiple, result.answers.map(function (answer) { return answer || ''; }).join(',')];
+          lines.push(row.map(csvCell).join(';'));
+        });
+        const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'hasil-' + (state.subject.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian') + '.csv';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      scanButton.addEventListener('click', async function () {
+        if (!keyIsComplete() || selectedFiles.length === 0) return;
+        results = [];
+        scanErrors = [];
+        renderResults();
+        setMode('scan');
+        scanButton.disabled = true;
+        scanButton.textContent = 'Memeriksa foto…';
+        scanStatus.className = 'scan-status';
+        for (let index = 0; index < selectedFiles.length; index++) {
+          const file = selectedFiles[index];
+          scanStatus.textContent = 'Memeriksa ' + (index + 1) + ' dari ' + selectedFiles.length + ': ' + file.name;
+          try {
+            const read = await readAnswers(file);
+            const name = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Siswa ' + (index + 1);
+            const result = { fileName: file.name, studentName: name, answers: read.answers, marks: read.marks, key: state.key.slice(), manual: Array(state.count).fill(false) };
+            resultTotals(result);
+            results.push(result);
+          } catch (error) {
+            scanErrors.push(file.name + ': ' + (error && error.message ? error.message : 'gambar tidak dapat dibaca'));
+          }
+          renderResults();
+        }
+        scanButton.disabled = !keyIsComplete() || selectedFiles.length === 0;
+        scanButton.innerHTML = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m12.5 12.5 4 4M6 8.5h5M8.5 6v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Periksa jawaban';
+        scanStatus.className = results.length ? 'scan-status success' : 'scan-status error';
+        scanStatus.textContent = results.length
+          ? results.length + ' lembar terbaca. Periksa rincian jika ada jawaban yang kurang jelas.'
+          : 'Belum ada lembar yang bisa dibaca. Ikuti petunjuk foto dan coba lagi.';
+        scanButtonHint.textContent = selectedFiles.length + ' file dipilih.';
+      });
+
+      fillControls();
+      updateView();
+      renderSelectedFiles();
+    })();
+  </script>
+</body>
+</html>

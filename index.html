@@ -348,7 +348,7 @@
                 <div class="field">
                   <label for="countInput">Jumlah soal</label>
                   <input class="control" id="countInput" type="number" min="1" max="120" step="1" inputmode="numeric">
-                  <p class="field-hint">Maksimal 120 nomor dalam satu halaman A4.</p>
+                  <p class="field-hint">Kolom dan ukuran bulatan menyesuaikan jumlah soal. Maksimal 120.</p>
                 </div>
                 <div class="field">
                   <label for="choicesInput">Pilihan jawaban</label>
@@ -451,7 +451,7 @@
         </div>
       </section>
 
-      <div class="footer"><span>Format cetak A4 · Pilihan A–D atau A–E · Maksimal 120 soal</span><span>Kunci dan hasil disimpan hanya di browser ini.</span></div>
+      <div class="footer"><span>A4 · 1–30 soal: 1 kolom · 31–60: 2 kolom · 61–120: 3 kolom</span><span>Kunci dan hasil disimpan hanya di browser ini.</span></div>
     </main>
   </div>
   <div id="printRoot" aria-hidden="true"></div>
@@ -544,7 +544,35 @@
       }
 
       function columnCount() {
-        return state.count <= 40 ? 1 : (state.count <= 80 ? 2 : 3);
+        return state.count <= 30 ? 1 : (state.count <= 60 ? 2 : 3);
+      }
+
+      function sheetLayout() {
+        const columns = columnCount();
+        const rowsPerColumn = Math.ceil(state.count / columns);
+        const columnWidth = 182 / columns;
+        const rowHeight = Math.min(13, 193 / rowsPerColumn);
+        const rowStart = 75.3 + Math.max(0, (193 - rowHeight * rowsPerColumn) / 2);
+        const radius = Math.min(2.8, rowHeight * .34);
+        const firstBubbleOffset = 12;
+        const bubbleStep = columns === 1 ? 26 : (columns === 2 ? 14.2 : 7.8);
+        const letterGap = columns === 3 ? .55 : .9;
+        const letterWidth = columns === 3 ? 2.5 : 3.0;
+        const choiceSpan = firstBubbleOffset + (state.choices - 1) * bubbleStep + radius + letterGap + letterWidth;
+        const leftOffset = (columnWidth - choiceSpan) / 2;
+        return {
+          columns: columns,
+          rowsPerColumn: rowsPerColumn,
+          columnWidth: columnWidth,
+          rowHeight: rowHeight,
+          rowStart: rowStart,
+          radius: radius,
+          firstBubbleOffset: firstBubbleOffset,
+          bubbleStep: bubbleStep,
+          letterGap: letterGap,
+          letterWidth: letterWidth,
+          leftOffset: leftOffset
+        };
       }
 
       function keyIsComplete() {
@@ -617,37 +645,40 @@
         parts.push('<path d="M159 47H196" stroke="#536762" stroke-width=".28"/>');
         parts.push('<path d="M14 53H196" stroke="#D9E2DE" stroke-width=".3"/>');
         parts.push('<text x="14" y="59" fill="#344F4B" font-family="Arial,sans-serif" font-size="3.1" font-weight="600">Petunjuk:</text>');
-        parts.push('<text x="29" y="59" fill="#52666B" font-family="Arial,sans-serif" font-size="3.1">Hitamkan satu bulatan jawaban sampai penuh dengan pensil 2B.</text>');
+        parts.push('<text x="29" y="59" fill="#52666B" font-family="Arial,sans-serif" font-size="3.1">Hitamkan bulatan di samping huruf jawaban dengan pensil 2B.</text>');
         parts.push('<text x="14" y="68.5" fill="#17333B" font-family="Arial,sans-serif" font-size="3.3" font-weight="700">JAWABAN</text>');
         parts.push('<text x="35" y="68.5" fill="#718186" font-family="Arial,sans-serif" font-size="2.65">' + state.count + ' nomor</text>');
         parts.push('<path d="M14 70.2H196" stroke="#AEBFB9" stroke-width=".35"/>');
 
-        const columns = columnCount();
-        const rowsPerColumn = Math.ceil(state.count / columns);
-        const columnWidth = 182 / columns;
-        const groupWidth = 13.3 + (state.choices - 1) * 6.6;
+        const layout = sheetLayout();
+        const columns = layout.columns;
+        const rowsPerColumn = layout.rowsPerColumn;
+        const columnWidth = layout.columnWidth;
         const headerY = 73.6;
-        const rowStart = 75.1;
-        const rowHeight = 4.75;
         for (let column = 0; column < columns; column++) {
           const columnLeft = 14 + column * columnWidth;
-          const leftOffset = (columnWidth - groupWidth) / 2;
+          const leftOffset = layout.leftOffset;
           const numberX = columnLeft + leftOffset;
-          const firstBubbleX = numberX + 11.5;
-          parts.push('<text x="' + numberX.toFixed(3) + '" y="' + headerY + '" fill="#718186" font-family="Arial,sans-serif" font-size="2.5" font-weight="700">NO.</text>');
-          for (let choice = 0; choice < state.choices; choice++) {
-            const centerX = firstBubbleX + choice * 6.6;
-            parts.push('<text x="' + centerX.toFixed(3) + '" y="' + headerY + '" text-anchor="middle" fill="#405754" font-family="Arial,sans-serif" font-size="2.8" font-weight="700">' + LETTERS[choice] + '</text>');
-          }
+          const firstBubbleX = numberX + layout.firstBubbleOffset;
+          const lastBubbleX = firstBubbleX + (state.choices - 1) * layout.bubbleStep;
+          const optionBandStart = firstBubbleX - layout.radius;
+          const optionBandEnd = lastBubbleX + layout.radius + layout.letterGap + layout.letterWidth;
+          const badgeHeight = Math.max(3.8, Math.min(5.4, layout.rowHeight - .55));
+          parts.push('<text x="' + (numberX + 4.1).toFixed(3) + '" y="' + headerY + '" text-anchor="middle" fill="#718186" font-family="Arial,sans-serif" font-size="2.7" font-weight="700">NO.</text>');
+          parts.push('<text x="' + ((optionBandStart + optionBandEnd) / 2).toFixed(3) + '" y="' + headerY + '" text-anchor="middle" fill="#718186" font-family="Arial,sans-serif" font-size="2.45" font-weight="700">PILIHAN</text>');
           for (let row = 0; row < rowsPerColumn; row++) {
             const question = column * rowsPerColumn + row;
             if (question >= state.count) break;
-            const top = rowStart + row * rowHeight;
-            const centerY = top + rowHeight / 2;
-            parts.push('<text x="' + numberX.toFixed(3) + '" y="' + (centerY + 1.05).toFixed(3) + '" fill="#263E43" font-family="Arial,sans-serif" font-size="3.0" font-weight="600">' + String(question + 1).padStart(2, '0') + '</text>');
+            const top = layout.rowStart + row * layout.rowHeight;
+            const centerY = top + layout.rowHeight / 2;
+            parts.push('<rect x="' + numberX.toFixed(3) + '" y="' + (centerY - badgeHeight / 2).toFixed(3) + '" width="8.2" height="' + badgeHeight.toFixed(3) + '" rx="1.1" fill="#EAF1EE"/>');
+            parts.push('<text x="' + (numberX + 4.1).toFixed(3) + '" y="' + (centerY + 1.05).toFixed(3) + '" text-anchor="middle" fill="#263E43" font-family="Arial,sans-serif" font-size="3.0" font-weight="700">' + String(question + 1).padStart(2, '0') + '</text>');
             for (let choice = 0; choice < state.choices; choice++) {
-              const centerX = firstBubbleX + choice * 6.6;
-              parts.push('<circle cx="' + centerX.toFixed(3) + '" cy="' + centerY.toFixed(3) + '" r="1.62" fill="#fff" stroke="#263E43" stroke-width=".32"/>');
+              const centerX = firstBubbleX + choice * layout.bubbleStep;
+              const letterX = centerX + layout.radius + layout.letterGap;
+              const letterFont = columns === 3 ? 2.55 : 3.25;
+              parts.push('<circle cx="' + centerX.toFixed(3) + '" cy="' + centerY.toFixed(3) + '" r="' + layout.radius.toFixed(3) + '" fill="#fff" stroke="#263E43" stroke-width=".32"/>');
+              parts.push('<text x="' + letterX.toFixed(3) + '" y="' + (centerY + 1.0).toFixed(3) + '" fill="#263E43" font-family="Arial,sans-serif" font-size="' + letterFont + '" font-weight="600">' + LETTERS[choice] + '</text>');
             }
           }
         }
@@ -988,21 +1019,20 @@
         const imageData = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height).data;
         const gray = new Uint8Array(canvas.width * canvas.height);
         for (let p = 0, i = 0; p < gray.length; p++, i += 4) gray[p] = Math.round(.299 * imageData[i] + .587 * imageData[i + 1] + .114 * imageData[i + 2]);
-        const columns = columnCount();
-        const rowsPerColumn = Math.ceil(state.count / columns);
-        const columnWidth = 182 / columns;
-        const groupWidth = 13.3 + (state.choices - 1) * 6.6;
+        const layout = sheetLayout();
+        const columns = layout.columns;
+        const rowsPerColumn = layout.rowsPerColumn;
         const answers = [];
         const marksByQuestion = [];
         for (let question = 0; question < state.count; question++) {
           const column = Math.floor(question / rowsPerColumn);
           const row = question % rowsPerColumn;
-          const left = 14 + column * columnWidth;
-          const numberX = left + (columnWidth - groupWidth) / 2;
-          const centerY = 75.1 + row * 4.75 + 4.75 / 2;
+          const left = 14 + column * layout.columnWidth;
+          const numberX = left + layout.leftOffset;
+          const centerY = layout.rowStart + row * layout.rowHeight + layout.rowHeight / 2;
           const scores = [];
           for (let choice = 0; choice < state.choices; choice++) {
-            const centerX = numberX + 11.5 + choice * 6.6;
+            const centerX = numberX + layout.firstBubbleOffset + choice * layout.bubbleStep;
             scores.push(bubbleContrast(gray, canvas.width, canvas.height, h, centerX, centerY));
           }
           const maxScore = Math.max.apply(null, scores);
